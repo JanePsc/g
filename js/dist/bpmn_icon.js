@@ -5,7 +5,7 @@ import {
     Marker, Edge,
     Layer, Flex, Row, Column, Center, Container, Stack, Positioned, Area,
     RectBorder, PolygonBorder, PolylineBorder, PathBorder, CircleBorder, EllipseBorder
-} from "./g.min.es.js";
+} from "./g.min.js";
 
 const rectBorder = new RectBorder(),
     roundRectBorder = new RectBorder({ rx: 8 }),
