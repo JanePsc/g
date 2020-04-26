@@ -1,6 +1,6 @@
 import { svg, log } from "../util.js";
 import { Layer, } from "./item.js";
-import { ContextBuilder } from "./context.js"; 
+import { ContextBuilder } from "./context.js";
 import { SVGRender } from "./svgRender.js";
 
 export class Canvas {
@@ -26,12 +26,19 @@ export class Canvas {
             let node = nodes.shift();
             node && this.drawNode(node);
         }
+        chart.allEdges.forEach(edge =>this.drawEdge(edge));
     }
 
     createLayer(parent) {
         let context = this.builder.buildItemContext(new Layer(), parent);
         context.view.doRender(context);
         return context;
+    }
+
+    drawEdge(edge) {
+        this.builder.buildNode(edge, this.chart.context);
+        let context = edge.context;
+        context.view.doRender(context);
     }
 
     drawNode(node) {
@@ -70,7 +77,6 @@ export class SVGCanvas extends Canvas {
     }
 
     setChartStyle(style) {
-
     }
 
     setNodeStyle(style) { }
@@ -81,7 +87,6 @@ export class SVGCanvas extends Canvas {
     move() { }
 
     resize() { }
-
 
     onRender() { }
 
