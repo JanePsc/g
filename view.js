@@ -8,12 +8,12 @@ const assign = Object.assign;
 async function draw() {
     let viewer = document.querySelector("#viewer");
     let canvas = new SVGCanvas(viewer);
-    let chartModel = {
+        let chartModel = {
         type: "diagram/bpmn",
         iconURI: "diagram.bpmn",
         elements: [
             ["lane", { id: "a2", name: "lane two", icon: "lane" }],
-            ["lane", { id: "a1", name: "lane one", icon: "lane" }],
+            ["lane", { id: "a1", name: "lane one", icon: "lane", style: { fill: "green", "stroke-width": 0 } }],
 
             ["node", { id: "2", name: "start event", icon: "startEvent", bounds: { x: 200, y: 100 } }],
             ["node", { id: "3", name: "task1", icon: "userTask", bounds: { x: 300, y: 100 } }],
@@ -21,7 +21,7 @@ async function draw() {
             ["node", { id: "5", name: "task 2", icon: "userTask", bounds: { x: 440, y: 200 } }],
             ["node", { id: "6", name: "task 3", icon: "userTask", bounds: { x: 600, y: 100 } }],
             ["node", { id: "7", name: "dataObject", icon: "dataObject", bounds: { x: 290, y: 30 } }],
-            ["node", { id: "9", name: "end event", icon: "endEvent", bounds: { x: 625, y: 200 } }],
+            ["node", { id: "9", name: "end event", icon: "endEvent", bounds: { x: 625, y: 200 }, style: { fill: "red" } }],
             ["pool", {
                 id: "30", name: "pool", icon: "pool", bounds: { x: 100, y: 280, width: 600, height: 360 },
                 isHorizontal: true,
