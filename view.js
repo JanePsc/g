@@ -1,6 +1,6 @@
-import { SVGCanvas, SimpleChartBuilder } from "../g.min.es.js";
+import { SVGCanvas, SimpleChartBuilder } from "./js/dist/g.min.es.js";
 
-import "/js/chart/bpmn/bpmn_icon.js";
+import "./js/dist/bpmn_icon.js";
 
 const assign = Object.assign;
 
