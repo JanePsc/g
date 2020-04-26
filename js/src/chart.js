@@ -1,6 +1,6 @@
 import { log, createManyOneRelation, copy } from "../util.js";
 import { Bounds, Margin, Padding, Direction } from "./base.js";
-import { Item, Text, Center, Layer, RectBorder, Edge } from "./item.js";
+import { Item, Text, Center, Layer, RectBorder, Edge, Marker, Symb, Path } from "./item.js";
 
 import { IconFactory, getIconParam } from "./icon.js";
 
@@ -11,6 +11,32 @@ const DefaultOptions = {
         isolate: true,
         styleName: "edge",
     },
+};
+DefaultOptions.chart = {
+    defs: [
+        new Marker({
+            id: "endArrow",
+            // viewBox: "0 0 24 24",
+            markerWidth: "13",
+            markerHeight: "13",
+            refX: "10",
+            refY: "6",
+            orient: "auto",
+            children: [new Path({
+                boundsIsInvalid: true,
+                d: "M2,2 L2,11 L10,6 L2,2z",
+                // style: { fill: "red" }
+            })]
+        }),
+
+        // new Symb({
+        //     id: "star",
+        //     viewBox: "",
+        //     children: [
+        //         new Text({ content: "hello" })
+        //     ]
+        // }),
+    ]
 };
 
 DefaultOptions.node = {
@@ -66,12 +92,19 @@ export class ChartItem {
         return this.context.ldata;
     }
 
+    get rendered() {
+        return this.context ? this.context.rendered : false;
+    }
+
     set owner(owner) {
-        if (!(owner instanceof ChartLane || owner instanceof Chart))
+        if (!(owner == null || owner instanceof ChartLane || owner instanceof Chart))
             throw new Error(`owner ${owner.id} is not pool,lane,or chart`);
-        // log("owner");
-        // log(owner)
-        createManyOneRelation(this, owner, "__owner", this.isEdge ? "edges" : "nodes");
+        let oldOwner = this.__owner;
+        if (oldOwner !== owner) {
+            createManyOneRelation(this, owner, "__owner", this.isEdge ? "edges" : "nodes");
+            let event = new CustomEvent('owner', { 'detail': { chartNode: this, owner: owner, oldOwner: oldOwner } });
+            this.__chart.trigger(event);
+        }
     }
 
     get owner() {
@@ -84,10 +117,6 @@ export class ChartItem {
 
     get chart() {
         return this.__chart;
-    }
-
-    get rendered() {
-        return this.context ? this.context.rendered : false;
     }
 
     async createItem() {
@@ -136,16 +165,34 @@ export class ChartEdge extends ChartItem {
         return this.model.targetRef;
     }
 
+    set sourceRef(ref) {
+        this.model.sourceRef = ref;
+    }
+
+    set targetRef(ref) {
+        this.model.targetRef = ref;
+    }
+
     get source() {
-        return this.__source && this.__source.id === this.sourceRef
-            ? this.__source
-            : (this.__source = this.chart.findNode(this.sourceRef));
+        return this.__source;
+    }
+
+    set source(obj) {
+        if (this.__source == obj) return;
+        createManyOneRelation(this, obj, "__source", "edges");
+        this.model.sourceRef = obj ? obj.id : undefined;
+        this.chart.trigger(new CustomEvent('model', { 'detail': { chartNode: this } }));
     }
 
     get target() {
-        return this.__target && this.__target.id === this.targetRef
-            ? this.__target
-            : (this.__target = this.chart.findNode(this.targetRef));
+        return this.__target;
+    }
+
+    set target(obj) {
+        if (this.__target == obj) return;
+        createManyOneRelation(this, obj, "__target", "edges");
+        this.model.targetRef = obj ? obj.id : undefined;
+        this.chart.trigger(new CustomEvent('model', { 'detail': { chartNode: this } }));
     }
 
     get isEdge() {
@@ -206,6 +253,40 @@ export class Chart extends ChartItem {
         this.nodes = [];
         this.allNodes = [];
         this.allEdges = [];
+        this.listeners = [];
+        this.unJointedEdges = [];
+    }
+
+    on(type, handle) {
+        if (type && handle && typeof handle === "function") {
+            this.listeners.push([type, handle]);
+        }
+        return this;
+    }
+
+    off(type, handle) {
+        if (type) {
+            let index;
+            while (this.listeners.length > 0) {
+                index = this.listeners.findIndex(o => o[0] === type && (handle ? o[1] === handle : true));
+                if (index < 0) break;
+                this.listeners.splice(index, 1);
+            }
+        }
+        return this;
+    }
+
+    offAll() {
+        this.listeners = [];
+        return this;
+    }
+
+    trigger(event) {
+        if (event == null) return;
+        for (let listen of this.listeners) {
+            if (listen[0] !== event.type) continue;
+            listen[1](event);
+        }
     }
 
     get iconURI() {
@@ -228,9 +309,15 @@ export class Chart extends ChartItem {
 export class ChartBuilder {
 
     async createChart(model) {
-        let chart = new Chart(new Layer());
+
+        let chartOptions = copy(true, {}, DefaultOptions.chart);
+        let chart = new Chart(new Layer(chartOptions));
         chart.model = model;
+        chart.chartBuilder = this;
         chart.item.chartNode = chart;
+        chart.on("create", event => this.__handleCreateEvent(event));
+        chart.on("remove", event => this.__handleRemoveEvent(event));
+        chart.on("owner", event => this.__handleOwnerEvent(event));
         return chart;
     }
 
@@ -245,7 +332,33 @@ export class ChartBuilder {
             node.isLaneSet = !!model.lanes;
         }
         await node.createItem();
+
+        let event = new CustomEvent('create', { 'detail': { chartNode: node } });
+        chart.trigger(event);
+        // log(node)
         return node;
+    }
+
+
+    __handleCreateEvent(event) {
+        // log(event);
+    }
+
+    __handleOwnerEvent(event) {
+        if (event == null) return;
+        let { chartNode, owner, oldOwner } = event.detail;
+        // log(chartNode.chart.unJointedEdges)
+        if (chartNode.chart) {
+            if (chartNode.isNode) {
+                this.jointRemains(chartNode);
+            } else if (chartNode.isEdge) {
+                this.joint(chartNode);
+            }
+        }
+    }
+
+    __handleRemoveEvent(event) {
+        log(event);
     }
 
     async build(model = {}) {
@@ -255,6 +368,39 @@ export class ChartBuilder {
     }
 
     async buildElments(chart, model) { }
+
+
+    jointRemains(node) {
+        // log(node.chart.unJointedEdges)
+        let id = node.id;
+        node.chart.unJointedEdges = node.chart.unJointedEdges.filter(o => (o.sourceRef == id || o.targetRef == id) && !this.joint(o));
+    }
+
+    joint(edge) {
+        let { target, source, sourceRef, targetRef, id, chart } = edge,
+            nodeList = chart.allNodes;
+        // log(`edge id:${edge.id}   sourceRef:${sourceRef}   targetRef:${targetRef}`);
+        if (!source && sourceRef) source = nodeList.find(o => o.id === sourceRef);
+        if (!target && targetRef) target = nodeList.find(o => o.id === targetRef);
+        if (!source || !target) {
+            if (chart.unJointedEdges.findIndex(e => e.id === id) < 0) {
+                chart.unJointedEdges.push(edge);
+            }
+            return false;
+        }
+
+        edge.source = source;
+        edge.target = target;
+        return true;
+    }
+
+    disJoint(edge) {
+        let { target, source, chart } = edge;
+        if (!source || !target) return;
+        edge.source = null;
+        edge.target = null;
+        chart.unJointedEdges.push(edge);
+    }
 
 }
 
