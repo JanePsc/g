@@ -1,11 +1,11 @@
-import { SVGCanvas, SimpleChartBuilder } from "./js/dist/g.min.es.js";
+import { SVGCanvas, SimpleChartBuilder } from "/js/dist/g.min.js";
 
-import "./js/dist/bpmn_icon.js";
+import "/js/dist/bpmn_icon.js";
 
 const assign = Object.assign;
 
 async function draw() {
-    let viewer = document.querySelector(".myclass");(document.body, "#viewer");
+    let viewer = document.querySelector("#viewer");
     let canvas = new SVGCanvas(viewer);
     let chartModel = {
         type: "diagram/bpmn",
@@ -20,15 +20,15 @@ async function draw() {
             ["node", { id: "4", name: "dataObject", icon: "dataObject", bounds: { x: 400, y: 200 } }],
             ["node", { id: "9", name: "end event", icon: "endEvent", bounds: { x: 300, y: 200 } }],
             ["pool", {
-                id: "30", name: "subflow", icon: "pool", bounds: { x: 100, y: 280, width: 600, height: 360 },
+                id: "30", name: "pool", icon: "pool", bounds: { x: 100, y: 280, width: 600, height: 360 },
                 isHorizontal: true,
                 lanes: ["a1", "a2"]
             }],
-            ["edge", { id: "e1", name: "", sourceRef: "1", targetRef: "2" }]
+            //["edge", { id: "e1", name: "", sourceRef: "1", targetRef: "2" }]
         ]
-    };   
+    };
     let chartBuilder = new SimpleChartBuilder();
-    let chart = await chartBuilder.build(chartModel);  
+    let chart = await chartBuilder.build(chartModel);
     canvas.drawChart(chart)
 }
 
